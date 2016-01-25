@@ -27,6 +27,16 @@ class MCVersion:
         self.ver = version["id"]
         self.type = version["type"]
 
+    def asset_ver(self):
+        other_data = grab_json("http://s3.amazonaws.com/Minecraft.Download/versions/{0}/{0}.json".format(self.ver))
+        ass = other_data["assets"]
+        rt = ""
+        for i in ass:
+            if i == ".": continue
+            rt += i
+        return int(rt)
+
+
     def get_assets(self, dir_, cache_):
         dir_ = os.path.join(dir_, "assets")
         cache_ = os.path.join(cache_, "assets")
@@ -102,8 +112,8 @@ def grab_json(url):
     return json.loads(f.read())
 
 
-def get_mc_versions():
-    print Fore.GREEN + "Downloading minecraft version list"
+def get_mc_versions(quiet=False):
+    if not quiet: print Fore.GREEN + "Downloading minecraft version list"
     versions = grab_json("http://s3.amazonaws.com/Minecraft.Download/versions/versions.json")["versions"]
     rl = {}
     for version in versions:

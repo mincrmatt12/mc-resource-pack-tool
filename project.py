@@ -6,11 +6,14 @@ import os
 import shutil
 
 import sys
+import zipfile
+
 from colorama import Fore
 
 import download
 import lang
 import sound
+import copy
 from input import get_yn
 
 
@@ -131,7 +134,18 @@ def refresh_assets(args):
                     lang.refresh_file(file_)
         print "\033[2K\r" + Fore.GREEN + "Done scanning languages"
 
+
 SKIP_COPY = False
+
+
+def clean_empty_build(di):
+    for pot in os.listdir(di):
+        full = os.path.join(di, pot)
+        if os.path.isdir(full):
+            clean_empty_build(full)
+    if len(os.listdir(di)) == 0:
+        print "\t" + Fore.LIGHTBLUE_EX + "Deleting directory " + Fore.WHITE + di
+        os.rmdir(di)
 
 
 def build(args):
@@ -157,14 +171,68 @@ def build(args):
                 print Fore.LIGHTBLUE_EX + "\tCopied " + Fore.WHITE + " " + os.path.join(root, file_)
     print Fore.GREEN + "Deleting unnecessary assets"
     for root, dirs, files in os.walk(build_dir):
-        print "\033[2K\r\t" + Fore.LIGHTBLUE_EX + "Checking directory " + Fore.WHITE + 
-       # print root, dirs, files
+        print "\033[2K\r\t" + Fore.LIGHTBLUE_EX + "Checking directory " + Fore.WHITE + root,
+        # print root, dirs, files
         for file_ in files:
-           # print os.path.join(default_dir, root, file_)
-            #print default_dir, root
+            # print os.path.join(default_dir, root, file_)
+            # print default_dir, root
             if not os.path.exists(os.path.join(default_dir, os.path.relpath(root, build_dir), file_)):
-               # print "skipping"
+                # print "skipping"
                 continue
-            if filecmp.cmp(os.path.join(build_dir, root, file_), os.path.join(default_dir, os.path.relpath(root, build_dir), file_), 0):
-                #print "removing " + os.path.join(build_dir, root, file_)
+            if filecmp.cmp(os.path.join(build_dir, root, file_),
+                           os.path.join(default_dir, os.path.relpath(root, build_dir), file_), 0):
+                # print "removing " + os.path.join(build_dir, root, file_)
                 os.remove(os.path.join(build_dir, root, file_))
+    print "\033[2K\r" + Fore.GREEN + "Finished deleting assets"
+    print Fore.GREEN + "Deleting empty folders"
+    for potential in os.listdir(build_dir):
+        full = os.path.join(build_dir, potential)
+        if os.path.isdir(full):
+            clean_empty_build(full)
+    print Fore.GREEN + "Done deleting empty folders"
+    build_dir = os.path.join(project_directory, ".mcrsrctools/build")
+    default_dir = os.path.join(project_directory, ".mcrsrctools/default_files")
+    if os.path.exists(os.path.join(build_dir, "assets/minecraft/sounds.json")):
+        print Fore.GREEN + "Merging sounds.json"
+        sound.create_soundjson(os.path.join(default_dir, "assets/minecraft/sounds.json"),
+                               os.path.join(build_dir, "assets/minecraft/sounds.json"),
+                               os.path.join(build_dir, "assets/minecraft/sounds_merged.json"))
+        os.remove(os.path.join(build_dir, "assets/minecraft/sounds.json"))
+        os.rename(os.path.join(build_dir, "assets/minecraft/sounds_merged.json"),
+                  os.path.join(build_dir, "assets/minecraft/sounds.json"))
+        print Fore.GREEN + "Done merging sounds.json"
+    print Fore.GREEN + "Creating pack.mcmeta"
+    version = 2 if download.get_mc_versions(True)[metadata["mc_version"]].asset_ver() >= 19 else 1
+
+    packmcmeta = {
+        "pack": {
+            "pack_format": version,
+            "description": metadata["desc"]
+        }
+    }
+    if metadata["langs"]:
+        packmcmeta["language"] = {}
+        for lang_ in metadata["langs"]:
+            entry = os.path.splitext(lang_)[0]
+            name = metadata["langs"][lang_]["name"]
+            region = metadata["langs"][lang_]["region"]
+            bid = metadata["langs"][lang_]["rtl"]
+            packmcmeta["language"][entry] = {
+                "name": name,
+                "region": region,
+                "bidirectional": bid
+            }
+
+    json.dump(packmcmeta, open(os.path.join(build_dir, "pack.mcmeta"), "w"))
+    print Fore.GREEN + "Done creating pack.mcmeta"
+    if os.path.exists(os.path.join(project_directory, "pack.png")):
+        shutil.copy(os.path.join(project_directory, "pack.png"), os.path.join(build_dir, "pack.png"))
+    print Fore.GREEN + "Zipping pack"
+    zip_ = zipfile.ZipFile(os.path.join(project_directory, "build.zip"), "w")
+    for root, dirs, files in os.walk(build_dir):
+        for file_ in files:
+            print Fore.LIGHTBLUE_EX + "\tZipping file " + Fore.WHITE + os.path.join(root, file_)
+            zip_.write(os.path.join(build_dir, root, file_),
+                       os.path.relpath(os.path.join(build_dir, root, file_), build_dir))
+    zip_.close()
+    print Fore.GREEN + "Finished build successfully!!"
