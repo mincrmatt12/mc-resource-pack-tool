@@ -102,7 +102,7 @@ def get_project_dir(cwd=None, join=""):
 
 
 def run_refresh():
-    refresh_assets(argparse.Namespace(refresh_sound=True, refresh_lang=True))
+    refresh_assets(argparse.Namespace(refresh_sound=True, refresh_lang=True, auto=True))
 
 
 def refresh_assets(args):
@@ -119,7 +119,10 @@ def refresh_assets(args):
                 if not os.path.exists(default_path):
                     if not sound.is_in_sound_group(full):
                         print "\033[2K"
-                        sound.refresh_sound(relative)
+                        if not auto:
+                            sound.refresh_sound(relative)
+                        else:
+                            sound.refresh_auto(relative)
         print "\033[2K\r" + Fore.GREEN + "Done scanning sounds"
     if args.refresh_lang:
         lang_dir = get_project_dir(join="assets/minecraft/lang")

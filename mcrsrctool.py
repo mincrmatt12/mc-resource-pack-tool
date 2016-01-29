@@ -46,6 +46,7 @@ parser_addlang.set_defaults(func=lang.add_language)
 parser_refresh = subparsers.add_parser('refreshassets', help="Search and add assets such as sounds and languages automatically")
 parser_refresh.add_argument("--nosound", action="store_false", help="Skip the refreshing of sound", dest="refresh_sound")
 parser_refresh.add_argument("--nolang", action="store_false", help="Skip the refreshing of languages", dest="refresh_lang")
+parser_refresh.add_argument("--manual", action="store_false", help="Enter all values in manually", dest="auto")
 parser_refresh.set_defaults(func=project.refresh_assets)
 
 parser_build = subparsers.add_parser('build', help="Build the assets into a zip")

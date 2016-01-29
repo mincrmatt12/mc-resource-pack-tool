@@ -40,8 +40,8 @@ def cache_get(url):
         if int(time.time()) < cache[url][1]:
             print colorama.Fore.LIGHTBLUE_EX + "\t\tAlready found in cache, using that"
             return cache[url][0]
-
     urllib.urlretrieve(url, os.path.join(USER_HOME_DIR, ".mcrsrctool", "cache", hashlib.md5(url).hexdigest()))
+
     expire = int(time.time()) + 3 * 24 * 60 * 60
     cache[url] = [os.path.join(USER_HOME_DIR, ".mcrsrctool", "cache", hashlib.md5(url).hexdigest()), expire]
 

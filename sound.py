@@ -34,10 +34,10 @@ def scan_for_diffs(default, created):
 
 def is_in_sound_group(file_):
     location = project.get_project_dir(join="assets/minecraft/sounds.json")
-
+    print location
     file_entry_pos = os.path.splitext(
-        os.path.relpath(file_, os.path.normpath(project.get_project_dir(join="assets/minecraft/sounds"))).replace(
-            os.path.sep, '/'))[0]
+            os.path.relpath(file_, os.path.normpath(project.get_project_dir(join="assets/minecraft/sounds"))).replace(
+                    os.path.sep, '/'))[0]
 
     with open(location, "r+") as f:
         sounds = json.load(f)
@@ -52,9 +52,24 @@ def is_in_sound_group(file_):
         return False
 
 
+def refresh_auto(file_):
+    dirname = os.path.relpath(os.path.dirname(file_), project.get_project_dir(join="assets/minecraft/sounds")).replace(
+        os.path.sep, ".")
+    location = project.get_project_dir(join="assets/minecraft/sounds.json")
+    with open(location) as f:
+        f2 = os.path.relpath(file_, project.get_project_dir(join="assets/minecraft/sounds"))
+        d = json.load(f)
+        if dirname not in d:
+            add_sound_group(argparse.Namespace(category="master", group=dirname, remove=False))
+            # print Fore.LIGHTBLUE_EX + "Adding sound " + Fore.WHITE + file_ + Fore.LIGHTBLUE_EX + " to group " + Fore.WHITE + dirname
+        add_to_sound_group(
+            argparse.Namespace(group=dirname, weight=1.0, pitch=1.0, volume=1.0, type="sound", stream=False, sound=f2,
+                               remove=False))
+
+
 def refresh_sound(file_):
     choice = input_.options_retnum(
-        Fore.LIGHTBLUE_EX + "What do you want to do with " + Fore.WHITE + " " + file_ + "? " + Fore.CYAN, [
+            Fore.LIGHTBLUE_EX + "What do you want to do with " + Fore.WHITE + " " + file_ + "? " + Fore.CYAN, [
                 "Create a new sound group and add the file to it",
                 "Add the file to an existing sound group",
                 "Ignore it completely (you will not be able to use it in-game)"
@@ -72,8 +87,9 @@ def refresh_sound(file_):
         type = input_.options(Fore.LIGHTBLUE_EX + "Sound type? (use 0 for default)", ["sound", "event"])
         stream = input_.get_yn(Fore.LIGHTBLUE_EX + "Stream sound (default is N) ")
         add_to_sound_group(
-            argparse.Namespace(group=group_name, weight=weight, pitch=pitch, volume=volume, type=type, stream=stream,
-                               sound=file_, remove=False))
+                argparse.Namespace(group=group_name, weight=weight, pitch=pitch, volume=volume, type=type,
+                                   stream=stream,
+                                   sound=file_, remove=False))
     elif choice == 2:
         return False
     return True
